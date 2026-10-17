@@ -1,0 +1,68 @@
+<!doctype html>
+
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b12">
+  <title>Clipzer — AI Clip Studio</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-mark">C</span> clipzer<span class="dot">.</span></a>
+    <span class="local-pill">● Traitement local</span>
+  </header>  <main class="container">
+    <section class="hero">
+      <p class="eyebrow">YOUR CONTENT. YOUR MOMENTS.</p>
+      <h1>Long video.<br><span>Short impact.</span></h1>
+      <p class="intro">Transforme tes vidéos en clips verticaux pour TikTok, Reels et Shorts.</p>
+    </section><section class="workspace">
+  <article class="panel">
+    <h2><span>01</span> Ta vidéo</h2>
+    <label class="dropzone" for="videoFile">
+      <input id="videoFile" type="file" accept="video/*">
+      <span class="upload-icon">↑</span>
+      <strong>Choisir une vidéo</strong>
+      <small>Appuie ici pour importer une vidéo depuis ton téléphone.</small>
+      <small>MP4 · MOV · WebM</small>
+    </label>
+    <div id="fileMeta"></div>
+    <video id="sourceVideo" controls playsinline hidden></video>
+    <p class="notice">🔒 Ton fichier reste dans ton navigateur. L’export peut être exigeant sur les téléphones peu puissants.</p>
+  </article>
+
+  <article class="panel">
+    <h2><span>02</span> Créer un clip</h2>
+    <div class="field-grid">
+      <label>Début (secondes)<input id="startTime" type="number" min="0" step="0.1" value="0"></label>
+      <label>Fin (secondes)<input id="endTime" type="number" min="0" step="0.1" value="30"></label>
+    </div>
+    <label class="field-label">Format vidéo</label>
+    <div class="format-options">
+      <label class="format-option"><input type="radio" name="format" value="vertical" checked> Vertical 9:16</label>
+      <label class="format-option"><input type="radio" name="format" value="original"> Format original</label>
+    </div>
+    <label class="field-label" for="subtitleText">Texte à afficher (facultatif)</label>
+    <textarea id="subtitleText" rows="3" maxlength="180" placeholder="Écris une courte phrase…"></textarea>
+    <button id="exportBtn" disabled>✦ Exporter le clip MP4 →</button>
+    <div id="progressArea" hidden>
+      <p id="progressText">Préparation…</p>
+      <progress id="progressBar" value="0" max="100"></progress>
+    </div>
+    <p id="statusMessage" role="status"></p>
+  </article>
+</section>
+
+<section id="resultPanel" class="panel" hidden>
+  <h2><span>03</span> Ton clip est prêt</h2>
+  <video id="resultVideo" controls playsinline></video>
+  <a id="downloadBtn" download="clipzer.mp4">Télécharger le MP4</a>
+</section>
+
+<footer>© 2026 Clipzer Studio · Version de démarrage</footer>
+
+  </main>
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>
