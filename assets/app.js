@@ -28,9 +28,7 @@ function setProgress(value, message) {
     bar.value = Math.max(0, Math.min(100, value));
   }
 
-  if (text) {
-    text.textContent = message;
-  }
+  if (text) text.textContent = message;
 }
 
 function showError(prefix, error) {
@@ -52,12 +50,12 @@ function useVideo(file) {
     return;
   }
 
-  if (sourceUrl) {
-    URL.revokeObjectURL(sourceUrl);
-  }
+  if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+  if (resultUrl) URL.revokeObjectURL(resultUrl);
 
   sourceFile = file;
   sourceUrl = URL.createObjectURL(file);
+  resultUrl = null;
 
   sourceVideo.src = sourceUrl;
   sourceVideo.hidden = false;
@@ -79,9 +77,7 @@ function useVideo(file) {
     $("startTime").max = String(duration);
     $("endTime").max = String(duration);
     $("startTime").value = "0";
-    $("endTime").value = String(
-      Math.min(3, Math.floor(duration * 10) / 10)
-    );
+    $("endTime").value = String(Math.min(3, duration));
 
     exportBtn.disabled = false;
 
@@ -94,7 +90,7 @@ function useVideo(file) {
 
   sourceVideo.onerror = () => {
     say(
-      "Le navigateur ne parvient pas à lire cette vidéo. Essaie un MP4.",
+      "Le navigateur ne parvient pas à lire cette vidéo. Essaie un fichier MP4.",
       true
     );
   };
@@ -106,17 +102,19 @@ fileInput.addEventListener("change", (event) => {
 
 async function loadFFmpeg() {
   if (ffmpeg) return ffmpeg;
-
-  // Empêche plusieurs chargements simultanés du moteur.
   if (ffmpegLoadPromise) return ffmpegLoadPromise;
 
   ffmpegLoadPromise = (async () => {
-    say("Chargement du moteur vidéo. Patiente…");
+    say("Chargement du moteur vidéo…");
     setProgress(0, "Chargement du moteur vidéo…");
 
-    const { FFmpeg } = await import(
-      "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js"
-    );
+    const packageURL =
+      "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm";
+
+    const coreURLBase =
+      "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
+
+    const { FFmpeg } = await import(packageURL + "/index.js");
 
     const { toBlobURL } = await import(
       "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js"
@@ -136,24 +134,27 @@ async function loadFFmpeg() {
       setProgress(percent, "Encodage : " + percent + "%");
     });
 
-    // Version monocœur : plus adaptée aux navigateurs mobiles
-    // que la version multithread nécessitant SharedArrayBuffer.
-    const base =
-      "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
+    say("Préparation des composants vidéo…");
 
-    say("Téléchargement des composants vidéo…");
+    // Le worker FFmpeg est converti en URL Blob pour tenter
+    // d'éviter le blocage du worker chargé depuis un autre domaine.
+    const classWorkerURL = await toBlobURL(
+      packageURL + "/worker.js",
+      "text/javascript"
+    );
 
     const coreURL = await toBlobURL(
-      base + "/ffmpeg-core.js",
+      coreURLBase + "/ffmpeg-core.js",
       "text/javascript"
     );
 
     const wasmURL = await toBlobURL(
-      base + "/ffmpeg-core.wasm",
+      coreURLBase + "/ffmpeg-core.wasm",
       "application/wasm"
     );
 
     await engine.load({
+      classWorkerURL,
       coreURL,
       wasmURL
     });
@@ -189,10 +190,7 @@ exportBtn.addEventListener("click", async () => {
   }
 
   if (Number.isFinite(duration) && end > duration + 0.05) {
-    say(
-      "La fin du clip dépasse la durée de la vidéo.",
-      true
-    );
+    say("La fin du clip dépasse la durée de la vidéo.", true);
     return;
   }
 
@@ -216,15 +214,17 @@ exportBtn.addEventListener("click", async () => {
   let outputName;
 
   try {
-    say("Initialisation du moteur vidéo…");
     engine = await loadFFmpeg();
 
-    // Noms uniques pour éviter les conflits entre deux exports.
-    const id = Date.now().toString();
+    const id =
+      Date.now().toString() +
+      "_" +
+      Math.random().toString(36).slice(2, 8);
+
     inputName = "clipzer_input_" + id + ".mp4";
     outputName = "clipzer_output_" + id + ".mp4";
 
-    say("Lecture du fichier importé…");
+    say("Lecture du fichier vidéo…");
 
     const fileBytes = new Uint8Array(
       await sourceFile.arrayBuffer()
@@ -281,11 +281,8 @@ exportBtn.addEventListener("click", async () => {
       throw new Error("Le fichier MP4 généré est vide.");
     }
 
-    if (resultUrl) {
-      URL.revokeObjectURL(resultUrl);
-    }
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
 
-    // Copie indépendante des données retournées par FFmpeg.
     const outputCopy = new Uint8Array(output.length);
     outputCopy.set(output);
 
@@ -309,19 +306,14 @@ exportBtn.addEventListener("click", async () => {
   } catch (error) {
     showError("Échec de l’export", error);
 
-    setProgress(
-      0,
-      "Échec — consulte le message affiché."
-    );
+    setProgress(0, "Échec de l’export. Consulte le message affiché.");
 
-    // Affiche le détail technique dans la console.
     console.error(
       "Détails de l’erreur Clipzer :",
       error?.stack || error
     );
 
   } finally {
-    // Nettoyage des fichiers temporaires sans supprimer le résultat.
     if (engine && inputName) {
       try {
         await engine.deleteFile(inputName);
