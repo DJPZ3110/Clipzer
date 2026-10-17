@@ -183,17 +183,17 @@ try {
 }
 
 } catch (error) {
-console.error(error);
+  console.error("Erreur Clipzer :", error);
 
-say(
-  "Échec de l’export. Vérifie ta connexion, essaie un clip court et réessaie avec un navigateur récent.",
-  true
-);
+  const detail = error?.message || String(error);
 
+  say(
+    "Échec de l’export : " + detail,
+    true
+  );
 } finally {
-exportBtn.disabled = !sourceFile;
+  exportBtn.disabled = !sourceFile;
 }
-});
 
 window.addEventListener("beforeunload", () => {
 if (sourceUrl) URL.revokeObjectURL(sourceUrl);
