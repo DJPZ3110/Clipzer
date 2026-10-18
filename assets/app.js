@@ -114,7 +114,9 @@ async function loadFFmpeg() {
     const coreURLBase =
       "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
 
-    const { FFmpeg } = await import(packageURL + "/index.js");
+    const { FFmpeg } = await import(
+      packageURL + "/index.js"
+    );
 
     const { toBlobURL } = await import(
       "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js"
@@ -134,15 +136,18 @@ async function loadFFmpeg() {
       setProgress(percent, "Encodage : " + percent + "%");
     });
 
+    say("Chargement du worker local…");
+
+    // Le worker est hébergé sur le même domaine que Clipzer.
+    // Fichier requis : assets/ffmpeg/worker.js
+    const classWorkerURL = new URL(
+      "./ffmpeg/worker.js",
+      import.meta.url
+    ).href;
+
     say("Préparation des composants vidéo…");
 
-    // Le worker FFmpeg est converti en URL Blob pour tenter
-    // d'éviter le blocage du worker chargé depuis un autre domaine.
-    const classWorkerURL = await toBlobURL(
-      packageURL + "/worker.js",
-      "text/javascript"
-    );
-
+    // Le moteur et le WASM sont chargés depuis le CDN.
     const coreURL = await toBlobURL(
       coreURLBase + "/ffmpeg-core.js",
       "text/javascript"
@@ -160,6 +165,8 @@ async function loadFFmpeg() {
     });
 
     ffmpeg = engine;
+    say("Moteur vidéo prêt.");
+
     return engine;
   })();
 
@@ -306,7 +313,10 @@ exportBtn.addEventListener("click", async () => {
   } catch (error) {
     showError("Échec de l’export", error);
 
-    setProgress(0, "Échec de l’export. Consulte le message affiché.");
+    setProgress(
+      0,
+      "Échec de l’export. Consulte le message affiché."
+    );
 
     console.error(
       "Détails de l’erreur Clipzer :",
